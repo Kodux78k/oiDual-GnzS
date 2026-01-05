@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>DUAL // EYE · GENESIS KERNEL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker Registered'));
+  }
+</script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { ui: ['Inter', 'sans-serif'], code: ['JetBrains Mono', 'monospace'] },
+          colors: {
+            dual: { bg: '#020202', glass: 'rgba(5, 5, 8, 0.85)', border: 'rgba(255, 255, 255, 0.1)', cyan: '#00f2ff', purple: '#bd00ff', alert: '#ff3e3e' }
+          },
+          animation: {
+            'spin-slow': 'spin 12s linear infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'scan': 'scan 4s linear infinite',
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          },
+          keyframes: {
+            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+            scan: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(300%)' } }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { --neon: #00f2ff; --neon-p: #bd00ff; }
+    body { background-color: #000; color: white; overflow: hidden; font-family: 'Inter', sans-serif; perspective: 1000px; }
+
+    /* AMBIENT LAYERS */
+    .nebula {
+      position: fixed; inset: 0; pointer-events: none;
+      background: 
+        radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(189, 0, 255, 0.05) 0%, transparent 40%);
+      z-index: 0;
+    }
+
+    /* GLASS KERNEL */
+    .glass-ui {
+      background: rgba(10, 10, 15, 0.7);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* TOP BAR - EYE OS EVOLVED */
+    #kernel-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 48px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #kernel-bar.expanded { height: 100vh; background: rgba(0,0,0,0.95); }
+
+    /* MONOLITH 2.0 */
+    .monolith-container {
+      transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(100vh) scale(0.9) rotateX(20deg);
+      opacity: 0;
+    }
+    body.sys-active .monolith-container {
+      transform: translateY(0) scale(1) rotateX(0);
+      opacity: 1;
+    }
+
+    /* DYNAMIC CARDS */
+    .app-card {
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    }
+    .app-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      border-color: var(--neon);
+      box-shadow: 0 10px 30px -10px rgba(0, 242, 255, 0.2);
+    }
+
+    /* RUNTIME ENGINE */
+    #runtime-container {
+      position: fixed; inset: 0; z-index: 10;
+      transition: filter 0.5s ease;
+    }
+    body.sys-active #runtime-container { filter: blur(20px) brightness(0.3) scale(1.05); pointer-events: none; }
+
+    /* SCANLINE EFFECT */
+    .scanline {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent, rgba(0, 242, 255, 0.03), transparent);
+      height: 100px; animation: scan infinite;
+      pointer-events: none;
+    }
+
+    /* CUSTOM SCROLL */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.2); border-radius: 10px; }
+  </style>
+</head>
+<body class="antialiased selection:bg-dual-cyan selection:text-black">
+
+  <div class="nebula"></div>
+
+  <!-- RUNTIME AREA -->
+  <div id="runtime-container">
+    <iframe id="main-frame" class="w-full h-full border-0" src="about:blank"></iframe>
+  </div>
+
+  <!-- EYE OS: KERNEL COMMAND BAR -->
+  <nav id="kernel-bar" class="glass-ui flex flex-col overflow-hidden">
+    <!-- Status Strip -->
+    <div class="h-12 flex items-center justify-between px-6 shrink-0 cursor-pointer group" onclick="Kernel.toggleManager()">
+      <div class="flex items-center gap-4">
+        <div class="relative">
+            <div class="w-2.5 h-2.5 bg-dual-cyan rounded-full animate-pulse shadow-[0_0_10px_#00f2ff]"></div>
+            <div class="absolute inset-[-4px] border border-dual-cyan/30 rounded-full"></div>
+        </div>
+        <div class="flex flex-col">
+            <span class="text-[10px] font-black tracking-[0.3em] uppercase opacity-80 group-hover:opacity-100 transition-opacity">Genesis // OS</span>
+            <span id="active-app-name" class="text-[8px] font-code text-dual-cyan uppercase opacity-50">Kernel Stable</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-8 font-code text-[10px] text-white/40">
+        <div class="hidden md:flex gap-4">
+            <span id="os-load">CPU: 2%</span>
+            <span id="os-mem">DB: 0.0MB</span>
+        </div>
+        <span id="clock" class="text-white/80 font-bold">00:00:00</span>
+        <button class="w-6 h-6 flex items-center justify-center hover:text-dual-cyan"><i data-lucide="command" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <!-- Section: Injection -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="terminal" class="w-4 h-4 text-dual-cyan"></i>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-white/60">Data Injection</h2>
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[9px] uppercase text-white/30 ml-2">App Signature</label>
+                    <input id="app-name" type="text" placeholder="Ex: CYBER_MAP" class="w-full bg-white/5 border border-white/10 p-3 text-xs rounded-xl focus:border-dual-cyan outline-none transition-all">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] uppercase text-white/30 ml-2">Source Code / URL</label>
+                    <textarea id="app-code" placeholder="<html>... ou https://..." class="w-full h-48 bg-black/50 border border-white/10 p-4 text-[11px] font-code text-dual-cyan rounded-2xl focus:border-dual-cyan outline-none transition-all resize-none"></textarea>
+                </div>
+                <button onclick="Kernel.install()" class="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-dual-cyan transition-all uppercase text-[10px] tracking-widest">Execute Install</button>
+            </div>
+        </div>
+
+        <!-- Section: App Management -->
+        <div class="lg:col-span-8 space-y-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="w-4 h-4 text-dual-purple"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-white/60">Module Registry</h2>
+                </div>
+                <button onclick="Kernel.nuke()" class="text-[9px] text-red-500 hover:text-white transition-colors uppercase font-bold">Nuke Database</button>
+            </div>
+            <div id="admin-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Admin cards generated via JS -->
+            </div>
+        </div>
+    </div>
+  </nav>
+
+  <!-- DUAL: MONOLITH INTERFACE -->
+  <div class="monolith-container fixed inset-0 z-[500] flex items-center justify-center p-6 pointer-events-none">
+    <div class="w-full max-w-5xl h-[80vh] glass-ui rounded-[2.5rem] flex flex-col overflow-hidden relative pointer-events-auto">
+        <div class="scanline"></div>
+        
+        <!-- Header -->
+        <div class="px-8 py-6 flex justify-between items-center border-b border-white/5">
+            <div>
+                <h1 class="text-xl font-black italic tracking-tighter">DUAL <span class="text-dual-cyan">MONOLITH</span></h1>
+                <p class="text-[9px] font-code text-white/30 uppercase tracking-[0.3em]">Accessing Genesis Cluster</p>
+            </div>
+            <div class="flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-white/10"></div>
+                <div class="w-2 h-2 rounded-full bg-dual-cyan/40"></div>
+                <div class="w-2 h-2 rounded-full bg-dual-purple/40"></div>
+            </div>
+        </div>
+
+        <!-- App Grid -->
+        <div id="monolith-grid" class="flex-1 overflow-y-auto p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Apps -->
+        </div>
+
+        <!-- Footer -->
+        <div class="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex justify-between items-center text-[9px] font-code text-white/20">
+            <span>READY_FOR_COMMAND</span>
+            <span class="flex items-center gap-2"><div class="w-1 h-1 bg-dual-cyan rounded-full"></div> SYSTEM_NOMINAL</span>
+        </div>
+    </div>
+  </div>
+
+  <!-- TRIGGER ORB -->
+  <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2000]">
+    <button onclick="Kernel.toggleMonolith()" class="group relative flex items-center justify-center">
+        <div class="absolute inset-0 bg-dual-cyan blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
+        <div class="w-16 h-16 rounded-full glass-ui flex items-center justify-center border-dual-cyan/20 group-hover:border-dual-cyan/50 transition-all duration-500">
+            <div class="w-3 h-3 bg-white rounded-full group-hover:scale-125 transition-transform duration-500 shadow-[0_0_15px_rgba(255,255,255,0.8)]"></div>
+        </div>
+        <!-- Ring Orbits -->
+        <div class="absolute w-20 h-20 rounded-full border border-t-dual-cyan/40 border-r-transparent border-b-transparent border-l-transparent animate-spin-slow"></div>
+        <div class="absolute w-24 h-24 rounded-full border border-b-dual-purple/40 border-l-transparent border-t-transparent border-r-transparent animate-spin-slow" style="animation-duration: 18s; animation-direction: reverse;"></div>
+    </button>
+  </div>
+
+  <!-- TOAST SYSTEM -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 glass-ui px-6 py-2 rounded-full border-dual-cyan/30 text-[10px] font-bold text-dual-cyan opacity-0 translate-y-4 transition-all z-[3000] pointer-events-none">
+    SYSTEM NOTIFY
+  </div>
+
+  <script>
+    // --- KERNEL LOGIC (THE BRAIN) ---
+    const Kernel = {
+        db: null,
+        apps: [],
+        state: { monolith: false, manager: false },
+
+        async init() {
+            return new Promise(resolve => {
+                const request = indexedDB.open('GenesisOS_DB', 3);
+                request.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if(!db.objectStoreNames.contains('modules'))
+                        db.createObjectStore('modules', { keyPath: 'id', autoIncrement: true });
+                };
+                request.onsuccess = e => {
+                    this.db = e.target.result;
+                    this.refresh();
+                    resolve();
+                };
+            });
+        },
+
+        async refresh() {
+            const tx = this.db.transaction('modules', 'readonly');
+            tx.objectStore('modules').getAll().onsuccess = e => {
+                this.apps = e.target.result;
+                this.renderUI();
+                this.updateMeta();
+            };
+        },
+
+        async install() {
+            const name = document.getElementById('app-name').value.trim();
+            const code = document.getElementById('app-code').value.trim();
+            
+            if(!name || !code) return this.notify("Invalid Input Data", true);
+
+            const tx = this.db.transaction('modules', 'readwrite');
+            tx.objectStore('modules').add({
+                name: name.toUpperCase(),
+                code: code,
+                type: code.startsWith('http') ? 'remote' : 'local',
+                created: new Date().toISOString()
+            });
+
+            tx.oncomplete = () => {
+                this.refresh();
+                this.notify("Module Integrated Successfully");
+                document.getElementById('app-name').value = '';
+                document.getElementById('app-code').value = '';
+                this.toggleManager(false);
+            };
+        },
+
+        launch(id) {
+            const app = this.apps.find(a => a.id === id);
+            if(!app) return;
+
+            const frame = document.getElementById('main-frame');
+            document.getElementById('active-app-name').textContent = app.name;
+
+            if(app.type === 'remote') {
+                frame.src = app.code;
+            } else {
+                const blob = new Blob([app.code], { type: 'text/html' });
+                frame.src = URL.createObjectURL(blob);
+            }
+
+            this.toggleMonolith(false);
+            this.toggleManager(false);
+            this.notify(`Launching: ${app.name}`);
+        },
+
+        delete(id) {
+            if(!confirm("De-integrate this module?")) return;
+            const tx = this.db.transaction('modules', 'readwrite');
+            tx.objectStore('modules').delete(id);
+            tx.oncomplete = () => this.refresh();
+        },
+
+        toggleMonolith(force) {
+            this.state.monolith = force !== undefined ? force : !this.state.monolith;
+            if(this.state.monolith) this.toggleManager(false);
+            document.body.classList.toggle('sys-active', this.state.monolith);
+        },
+
+        toggleManager(force) {
+            this.state.manager = force !== undefined ? force : !this.state.manager;
+            if(this.state.manager) this.toggleMonolith(false);
+            document.getElementById('kernel-bar').classList.toggle('expanded', this.state.manager);
+        },
+
+        renderUI() {
+            const monoGrid = document.getElementById('monolith-grid');
+            const adminGrid = document.getElementById('admin-grid');
+            
+            monoGrid.innerHTML = '';
+            adminGrid.innerHTML = '';
+
+            this.apps.forEach(app => {
+                // Monolith Card
+                const mCard = document.createElement('div');
+                mCard.className = "app-card glass-ui p-6 rounded-[2rem] border-white/5 cursor-pointer group";
+                mCard.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-dual-cyan group-hover:bg-dual-cyan group-hover:text-black transition-all">
+                            <i data-lucide="${app.type === 'remote' ? 'globe' : 'code-2'}" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-sm tracking-tight">${app.name}</h3>
+                            <p class="text-[9px] font-code text-white/20 mt-1">ID: 0x${app.id.toString(16).toUpperCase()}</p>
+                        </div>
+                    </div>
+                `;
+                mCard.onclick = () => this.launch(app.id);
+                monoGrid.appendChild(mCard);
+
+                // Admin Card
+                const aCard = document.createElement('div');
+                aCard.className = "bg-white/5 border border-white/10 p-3 rounded-xl flex justify-between items-center hover:border-dual-purple/50 transition-all";
+                aCard.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold">${app.name}</span>
+                        <span class="text-[8px] text-white/30 font-code uppercase">${app.type}</span>
+                    </div>
+                    <button onclick="Kernel.delete(${app.id})" class="text-white/20 hover:text-red-500 transition-colors">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                `;
+                adminGrid.appendChild(aCard);
+            });
+
+            if(window.lucide) lucide.createIcons();
+        },
+
+        updateMeta() {
+            const mem = (new Blob([JSON.stringify(this.apps)]).size / 1024).toFixed(2);
+            document.getElementById('os-mem').textContent = `DB: ${mem}KB`;
+        },
+
+        notify(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg.toUpperCase();
+            toast.style.borderColor = isError ? 'rgba(255, 62, 62, 0.4)' : 'rgba(0, 242, 255, 0.4)';
+            toast.style.color = isError ? '#ff3e3e' : '#00f2ff';
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(1rem)';
+            }, 3000);
+        },
+
+        nuke() {
+            if(confirm("WIPE ALL DATA? This cannot be undone.")) {
+                indexedDB.deleteDatabase('GenesisOS_DB');
+                localStorage.clear();
+                location.reload();
+            }
+        }
+    };
+
+    // --- SYSTEM CLOCK ---
+    setInterval(() => {
+        document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
+        // Random CPU simulation
+        document.getElementById('os-load').textContent = `CPU: ${Math.floor(Math.random() * 12) + 1}%`;
+    }, 1000);
+
+    // --- BOOT ---
+    window.onload = () => {
+        Kernel.init();
+        if(window.lucide) lucide.createIcons();
+        console.log("%c DUAL GENESIS KERNEL ONLINE ", "background: #000; color: #00f2ff; font-weight: bold; border: 1px solid #00f2ff; padding: 5px;");
+    };
+  </script>
+</body>
+</html>
